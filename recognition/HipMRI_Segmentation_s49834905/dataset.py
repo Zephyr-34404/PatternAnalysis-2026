@@ -29,10 +29,9 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-
+# ---------------------------------------------------------------------------
 # Constants
-
-
+# ---------------------------------------------------------------------------
 NUM_CLASSES = 6          # background, body, bone, bladder, rectum, prostate
 PROSTATE_LABEL = 5       # the class the assignment target (Dice >= 0.75) refers to
 IMAGE_SHAPE = (256, 128) # (height, width) of every slice
@@ -41,8 +40,9 @@ LABEL_NAMES = ["background", "body", "bone", "bladder", "rectum", "prostate"]
 SPLITS = ("train", "validate", "test")
 
 
+# ---------------------------------------------------------------------------
 # File discovery
-
+# ---------------------------------------------------------------------------
 def get_pairs(root, split):
     """
     Return a sorted list of (image_path, mask_path) tuples for one split.
@@ -81,9 +81,9 @@ def get_pairs(root, split):
         raise FileNotFoundError(f"No .nii.gz files found in {img_dir}")
     return pairs
 
-
+# ---------------------------------------------------------------------------
 # Loading and preprocessing
-
+# ---------------------------------------------------------------------------
 def load_nifti_2d(path):
     """
     Load one NIfTI slice as a 2D float64 NumPy array.
@@ -136,7 +136,9 @@ def center_crop(arr, shape=IMAGE_SHAPE):
     left = (width - target_w) // 2
     return arr[top:top + target_h, left:left + target_w]
 
+# ---------------------------------------------------------------------------
 # Dataset
+# ---------------------------------------------------------------------------
 
 class HipMRIDataset(Dataset):
     """
@@ -224,7 +226,9 @@ class HipMRIDataset(Dataset):
         return image, mask
 
 
+# ---------------------------------------------------------------------------
 # DataLoaders
+# ---------------------------------------------------------------------------
 
 def get_dataloaders(root, batch_size=16, num_workers=0):
     """
@@ -257,7 +261,9 @@ def get_dataloaders(root, batch_size=16, num_workers=0):
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin)
     return train_loader, val_loader, test_loader
 
+# ---------------------------------------------------------------------------
 # Self-test
+# ---------------------------------------------------------------------------
 
 def check_all_shapes(root):
     """
