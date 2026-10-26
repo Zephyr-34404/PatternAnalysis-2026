@@ -31,7 +31,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from dataset import LABEL_NAMES, NUM_CLASSES, PROSTATE_LABEL, get_dataloaders
-from modules import UNet, count_parameters
+from modules import CAN, UNet, count_parameters
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +56,8 @@ def build_model(name):
     # When adding Improved U-Net later, just add an extra branch here and select --model improved on the command line.
     if name == "unet":
         return UNet(in_channels=1, num_classes=NUM_CLASSES, base_channels=32)
+    if name == "can":
+        return CAN(in_channels=1, num_classes=NUM_CLASSES, width=64)
     raise ValueError(f"Unknown model: {name}")
 
 

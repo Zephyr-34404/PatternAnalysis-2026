@@ -122,6 +122,51 @@ class UNet(nn.Module):
 
         return self.outc(x)
 
+class CAN(nn.Module):
+    """
+    2D Context Aggregation Network for multi-class segmentation.
+
+    A stack of 3x3 convolutions with exponentially increasing dilation
+    (1, 2, 4, 8, 16, 32, 1). The receptive field grows to about 133 pixels
+    while the feature maps stay at full input resolution, so there is no
+    pooling, no upsampling and no skip connections. Each layer is
+    convolution -> batch normalisation -> LeakyReLU.
+
+    Reference:
+        F. Yu and V. Koltun, "Multi-scale Context Aggregation by Dilated
+        Convolutions," ICLR, 2016.
+
+    Args:
+        in_channels (int): input channels (1 for MRI).
+        num_classes (int): output classes (6 for HipMRI).
+        width (int): feature channels in every layer.
+        dilations (tuple[int]): dilation rate of each context layer.
+
+    Input:  (B, in_channels, H, W)
+    Output: (B, num_classes, H, W) raw scores (logits), no softmax
+    """
+
+    def __init__(self, in_channels=1, num_classes=6, width=64,
+                 dilations=(1, 2, 4, 8, 16, 32, 1)):
+        super().__init__()
+
+        def conv_block(c_in, c_out, dilation):
+            # padding = dilation keeps height and width unchanged for a 3x3 kernel
+            return [
+                nn.Conv2d(c_in, c_out, kernel_size=3, padding=dilation, dilation=dilation, bias=False),
+                nn.BatchNorm2d(c_out),
+                nn.LeakyReLU(0.2, inplace=True),
+            ]
+
+        layers = conv_block(in_channels, width, 1)        # lift 1 channel to `width` features
+        for d in dilations:                                # context aggregation
+            layers += conv_block(width, width, d)
+        layers += conv_block(width, width, 1)             # final 3x3 refinement
+        layers.append(nn.Conv2d(width, num_classes, kernel_size=1))  # per-pixel class scores
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.net(x)
 
 def count_parameters(model):
     """Number of trainable parameters."""
@@ -137,4 +182,10 @@ if __name__ == "__main__":
     print(f"output: {tuple(y.shape)}  (expected (2, 6, 256, 128))")
     print(f"trainable parameters: {count_parameters(model):,}")
     assert y.shape == (2, 6, 256, 128), "output shape is wrong"
+    print("OK")
+
+    can = CAN(in_channels=1, num_classes=6)
+    y = can(x)
+    print(f"\nCAN output: {tuple(y.shape)}  parameters: {count_parameters(can):,}")
+    assert y.shape == (2, 6, 256, 128), "CAN output shape is wrong"
     print("OK")
