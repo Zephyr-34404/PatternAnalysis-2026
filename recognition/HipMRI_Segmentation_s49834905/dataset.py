@@ -6,7 +6,7 @@ segmentation masks, normalises the images, and serves them through
 PyTorch DataLoaders for training, validation and testing.
 
 Dataset facts (verified during the data audit):
-    - 38 patients, 211 3D volumes, 60 axial slices per volume
+    - 38 patients, 211 3D volumes, 60 coronal slices per volume
     - Provided split is patient-disjoint: train 31 / validate 4 / test 3 patients
     - Most slices are 256 x 128; a few wider volumes (e.g. 256 x 144) are centre-cropped
     - Labels: 0 background, 1 body, 2 bone, 3 bladder, 4 rectum, 5 prostate
@@ -214,11 +214,11 @@ class HipMRIDataset(Dataset):
         """
         Flip image and mask together along the 256-pixel axis with probability 0.5.
 
-        In these slices the 256-pixel axis runs between the left and right
-        femoral heads, so this is an anatomical left-right mirror, which the
-        roughly symmetric pelvis tolerates. The 128-pixel axis (anterior-
-        posterior) is never flipped, since that orientation does not occur
-        in real scans.
+        The slices are coronal. The 256-pixel axis runs between the left and
+        right femoral heads, so this is an anatomical left-right mirror, which
+        the roughly symmetric pelvis tolerates. The 128-pixel axis
+        (superior-inferior, bladder above prostate) is never flipped, since an
+        upside-down pelvis does not occur in real scans.
         """
         if torch.rand(1).item() < 0.5:
             image = torch.flip(image, dims=[1])
