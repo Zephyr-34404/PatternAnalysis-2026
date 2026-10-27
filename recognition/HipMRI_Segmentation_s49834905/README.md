@@ -108,7 +108,7 @@ Following the context module of Yu and Koltun [2]: one 3×3 convolution lifts th
 |---|---|
 | Python | 3.11.17 |
 | PyTorch | 2.14.1+cu132 |
-| NumPy | <!-- TODO: run python -c "import numpy; print(numpy.__version__)" --> |
+| NumPy | 2.4.6 |
 | nibabel | 5.4.2 |
 | matplotlib | 3.11.2 |
 | tqdm | 4.70.1 |
