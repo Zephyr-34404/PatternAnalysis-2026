@@ -135,6 +135,9 @@ python train.py --root /path/to/keras_slices_data --model can  --epochs 30 --see
 # 4. Evaluate a checkpoint and save metrics.json plus figures to <checkpoint folder>/eval/
 python predict.py --root /path/to/keras_slices_data --model unet
 python predict.py --root /path/to/keras_slices_data --model can --checkpoint outputs/can30/best_model.pt
+
+# 5. Aggregate the six runs into mean ± SD per model
+python compare.py
 ```
 
 | File | Contents |
@@ -143,6 +146,7 @@ python predict.py --root /path/to/keras_slices_data --model can --checkpoint out
 | `modules.py` | `UNet` and `CAN` model classes, parameter counting, shape self-test |
 | `train.py` | Dice + cross-entropy loss, training and validation loop, checkpointing, curves, final test |
 | `predict.py` | inference, per-class / per-volume / edge-slice / leakage metrics, timing, error figures |
+| `compare.py` | reads the six runs' metrics.json and prints mean ± SD per model |
 
 ## Results
 
@@ -167,7 +171,7 @@ Mean ± standard deviation over seeds 42, 1 and 2.
 | Bone | 0.935 ± 0.002 | 0.931 ± 0.001 |
 | Bladder | 0.964 ± 0.002 | 0.963 ± 0.002 |
 | Rectum | 0.843 ± 0.015 | 0.831 ± 0.012 |
-| **Prostate** | **0.861 ± 0.007** | **0.853 ± 0.003** |
+| **Prostate** | **0.861 ± 0.007** | **0.853 ± 0.002** |
 
 Prostate IoU: U-Net 0.757 ± 0.010, CAN 0.743 ± 0.003. Per-class IoU for every run is saved in `outputs/<run>/eval/metrics.json`.
 
@@ -183,10 +187,10 @@ Test split, mean ± standard deviation over three seeds. **Edge slices** are, fo
 
 | Metric | U-Net (baseline) | CAN (main) | Better |
 |---|---|---|---|
-| Prostate Dice, all slices | **0.861 ± 0.007** | 0.853 ± 0.003 | ≈ U-Net |
+| Prostate Dice, all slices | **0.861 ± 0.007** | 0.853 ± 0.002 | ≈ U-Net |
 | Prostate Dice, central slices | **0.880 ± 0.006** | 0.873 ± 0.000 | ≈ |
 | **Prostate Dice, edge slices** | **0.425 ± 0.035** | 0.385 ± 0.042 | U-Net (both poor) |
-| Worst test volume, prostate Dice | **0.838 ± 0.013** | 0.802 ± 0.014 | U-Net |
+| Worst test volume, prostate Dice | **0.838 ± 0.012** | 0.802 ± 0.014 | U-Net |
 | Predicted prostate inside true rectum | **0.14% ± 0.07%** | 0.26% ± 0.13% | U-Net |
 | Predicted prostate inside true bladder | **0.53% ± 0.32%** | 0.81% ± 0.17% | U-Net |
 | Prostate predicted on prostate-free slices (of 345) | 3.7 ± 3.1 | 6.0 ± 1.0 | U-Net, but variable |
@@ -274,6 +278,7 @@ A different weekly scan, where the bladder is flatter and the gland's edge falls
 - Chose the dataset, the Normal-difficulty route and the CAN main model, and agreed the acceptance criteria.
 - Ran every experiment (6 training runs and their evaluations), read the outputs and inspected the prediction figures.
 - Edited the code and documentation, and committed the work in stages.
+- Wrote `compare.py` to aggregate the multi-seed results; it caught two standard deviations that an earlier draft of this README had computed from rounded values.
 
 **How the AI-assisted code was verified**
 
