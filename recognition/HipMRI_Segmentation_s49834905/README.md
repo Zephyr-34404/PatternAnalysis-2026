@@ -59,7 +59,9 @@ flowchart LR
 
 **Risks and fallback:** the evaluation sets are small (4 validation and 3 test patients), so per-volume scores are reported rather than only pooled Dice. Compute budget is under one GPU-hour per model. If CAN missed the target, the fallback was to submit the U-Net (Easy) and report CAN as a negative result.
 
-**Outcome against the criteria (mean of three seeds):** criteria 1, 2, 4 and 5 are met by both models. Criterion 3 is **not met** by CAN: its edge-slice Dice (0.385) is below the baseline's (0.425).
+**Outcome against the criteria (mean of three seeds):** criteria 1, 2, 4 and 5 are met by both models. Criterion 3 is **not met** by CAN: its edge-slice Dice (0.385) is below the baseline's (0.425). 
+
+**Tutor feedback at the check-off** and where it is addressed: keep a sufficient commit history (the work is committed in small steps); compare 2D and 3D models on the same scale (costs and Dice are reported per volume, see [Resource profiling](#resource-profiling)); and group the failure cases to see whether they share a cause (see [Failure case autopsy](#failure-case-autopsy)).
 
 ## Dataset and Preprocessing
 
@@ -138,6 +140,9 @@ python predict.py --root /path/to/keras_slices_data --model can --checkpoint out
 
 # 5. Aggregate the six runs into mean ± SD per model
 python compare.py
+
+# 6. Group prostate slices by size and print mean Dice and failure rate per group
+python analyse_failures.py
 ```
 
 | File | Contents |
@@ -147,6 +152,7 @@ python compare.py
 | `train.py` | Dice + cross-entropy loss, training and validation loop, checkpointing, curves, final test |
 | `predict.py` | inference, per-class / per-volume / edge-slice / leakage metrics, timing, error figures |
 | `compare.py` | reads the six runs' metrics.json and prints mean ± SD per model |
+| `analyse_failures.py` | groups prostate slices by size and prints mean Dice and failure rate per group |
 
 ## Results
 
@@ -220,6 +226,17 @@ Inference cost is reported per 60-slice volume (a batch of 60 slices is exactly 
 
 ### Failure case autopsy
 
+**Grouping failures by prostate size.** To check whether failures share a common cause or are random, every test slice containing prostate was grouped by how many ground-truth prostate pixels it holds (`analyse_failures.py`, all six runs pooled). A slice counts as failed when its prostate Dice is below 0.5.
+
+| Prostate pixels in slice | Slices | U-Net Dice | U-Net failed | CAN Dice | CAN failed |
+|---|---|---|---|---|---|
+| 1–50 | 14 | 0.091 | 90% | 0.063 | 98% |
+| 51–150 | 28 | 0.427 | 50% | 0.339 | 62% |
+| 151–300 | 44 | 0.773 | 11% | 0.718 | 15% |
+| over 300 | 109 | 0.895 | 0% | 0.891 | 0% |
+
+Failure rate falls steadily as the prostate gets larger, and no slice with more than 300 prostate pixels failed for either model. The failures are therefore not random noise: both models are unreliable whenever the prostate occupies fewer than about 150 pixels of the slice, and CAN is worse than the U-Net in every small-prostate group. Because the gland is thinnest at its edges, this also explains the low edge-slice Dice above. The individual cases below are examples of this pattern.
+
 The five worst prostate slices of each of the six trained models (two architectures × three seeds) are largely **the same slices**: `case_040_week_1_slice_20` appears for all six models, and `week_0_slice_37/38`, `week_2_slice_19`, `week_2_slice_37` and `week_3_slice_14` recur repeatedly. Failures that persist across architectures and seeds point to properties of the slices, not to a particular model. All of them are edge slices of patient 040.
 
 **Case 1: `case_040_week_1_slice_20`, missed entirely (among the five worst slices for all six models).**
@@ -259,7 +276,7 @@ A different weekly scan, where the bladder is flatter and the gland's edge falls
 **Adopt the 2D U-Net for drafting, restricted to central slices, with mandatory manual review of the gland's edge slices. Do not adopt the CAN. Fund a 3D or 2.5D experiment next.**
 
 - **Where automation works:** on central prostate slices both models reach about 0.88 Dice, the worst test volume stays at or above 0.83 (U-Net), and leakage into the rectum and bladder is under 1%. A clinician correcting these drafts would mostly adjust boundaries.
-- **Where it breaks down:** on the first and last slices containing prostate, Dice falls to about 0.4 and the typical error is missing the prostate altogether or labelling it as rectum. These slices are unsuitable for automated drafting. In practice the planner should be shown the slice range where the draft's prostate starts and ends, and should check one or two slices beyond each end.
+- **Where it breaks down:** on the first and last slices containing prostate, Dice falls to about 0.4 and the typical error is missing the prostate altogether or labelling it as rectum. These slices are unsuitable for automated drafting. In practice the planner should be shown the slice range where the draft's prostate starts and ends, and should check one or two slices beyond each end. More precisely, drafts are unreliable on any slice where the prostate covers fewer than about 150 pixels, which in practice means the slices at either end of the gland.
 - **Why not CAN:** multi-scale context within the slice does not improve the edge slices (0.385 vs 0.425), the worst volume or leakage, and it costs about 50% more training memory and inference time. Its only advantage, a 26-fold smaller model, does not matter on this hardware.
 - **What to try next:** the edge failures come from missing information in the slice direction, which in-plane context cannot supply. The next experiment should give the model neighbouring slices, either as extra input channels (2.5D, a cheap change to the current pipeline) or with a 3D U-Net on the volume data, and should be judged on the edge-slice metric defined here rather than on pooled Dice. It should also be tested on more patients than the current three.
 
@@ -281,6 +298,7 @@ A different weekly scan, where the bladder is flatter and the gland's edge falls
 - Ran every experiment (6 training runs and their evaluations), read the outputs and inspected the prediction figures.
 - Edited the code and documentation, and committed the work in stages.
 - Wrote `compare.py` to aggregate the multi-seed results; it caught two standard deviations that an earlier draft of this README had computed from rounded values.
+- Wrote `analyse_failures.py` in response to tutor feedback, grouping failures by prostate size to show they are systematic rather than random.
 
 **How the AI-assisted code was verified**
 
