@@ -1,6 +1,6 @@
 # HipMRI 2D Prostate Segmentation: U-Net vs Context Aggregation Network
 
-**Author:** Zeph (s49834905) · **Course:** COMP3710, The University of Queensland · **Difficulty:** Normal (2D CAN on HipMRI), with a 2D U-Net baseline
+**Author:** Xiaoyu Zhang (s49834905) · **Course:** COMP3710, The University of Queensland · **Difficulty:** Normal (2D CAN on HipMRI), with a 2D U-Net baseline
 
 ## Overview
 
