@@ -175,6 +175,38 @@ def slice_scores(pred, true, min_pixels=20):
     return sorted(scores)
 
 
+def slice_records(pred, true, names, volumes):
+    """
+    One record per slice whose ground truth or prediction contains prostate.
+
+    Saved as per_slice.json so failures can be grouped and analysed across
+    models: prostate size in the slice, edge versus central position, and
+    how many missed prostate pixels were labelled as rectum or bladder.
+    """
+    edge = set()
+    for idx in volumes.values():
+        with_prostate = [i for i in idx if (true[i] == PROSTATE_LABEL).any()]
+        edge.update(with_prostate[:EXTREME_SLICES] + with_prostate[-EXTREME_SLICES:])
+
+    records = []
+    for i, name in enumerate(names):
+        t = true[i] == PROSTATE_LABEL
+        p = pred[i] == PROSTATE_LABEL
+        if not t.any() and not p.any():
+            continue
+        vol, slice_no = parse_name(name)
+        records.append({
+            "volume": vol,
+            "slice": slice_no,
+            "gt_pixels": int(t.sum()),
+            "pred_pixels": int(p.sum()),
+            "dice": float(dice(p, t)),
+            "edge": i in edge,
+            "missed_as_rectum": int((t & (pred[i] == RECTUM_LABEL)).sum()),
+            "missed_as_bladder": int((t & (pred[i] == BLADDER_LABEL)).sum()),
+        })
+    return records
+
 # ---------------------------------------------------------------------------
 # Figures
 # ---------------------------------------------------------------------------
@@ -271,6 +303,9 @@ def main():
     save_examples(images, true, pred, middle_slices, names, out_dir / "examples.png")
 
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2, default=float))
+
+    records = slice_records(pred, true, names, volumes)
+    (out_dir / "per_slice.json").write_text(json.dumps(records, indent=1))
 
     # ----- Summary -----
     print(f"\n=== {args.model} on {args.split} ({len(dataset)} slices, {len(volumes)} volumes) ===")
