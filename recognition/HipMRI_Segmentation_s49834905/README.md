@@ -216,6 +216,8 @@ Measured on the RTX 4080 Laptop GPU.
 
 CAN has 26 times fewer parameters but needs about 50% more training memory and time, and is about 50% slower at inference. Parameter count is the wrong measure of cost here: CAN applies 64-channel convolutions to all 32,768 pixels in every layer, whereas most of the U-Net's work happens on downsampled feature maps. Both models meet the resource criterion with a wide margin.
 
+Inference cost is reported per 60-slice volume (a batch of 60 slices is exactly one volume), and Dice is also reported per volume, so these numbers can be compared directly with a future 3D model, which processes a whole volume at once.
+
 ### Failure case autopsy
 
 The five worst prostate slices of each of the six trained models (two architectures × three seeds) are largely **the same slices**: `case_040_week_1_slice_20` appears for all six models, and `week_0_slice_37/38`, `week_2_slice_19`, `week_2_slice_37` and `week_3_slice_14` recur repeatedly. Failures that persist across architectures and seeds point to properties of the slices, not to a particular model. All of them are edge slices of patient 040.
