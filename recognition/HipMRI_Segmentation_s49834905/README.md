@@ -280,6 +280,11 @@ A different weekly scan, where the bladder is flatter and the gland's edge falls
 - **Why not CAN:** multi-scale context within the slice does not improve the edge slices (0.385 vs 0.425), the worst volume or leakage, and it costs about 50% more training memory and inference time. Its only advantage, a 26-fold smaller model, does not matter on this hardware.
 - **What to try next:** the edge failures come from missing information in the slice direction, which in-plane context cannot supply. The next experiment should give the model neighbouring slices, either as extra input channels (2.5D, a cheap change to the current pipeline) or with a 3D U-Net on the volume data, and should be judged on the edge-slice metric defined here rather than on pooled Dice. It should also be tested on more patients than the current three.
 
+
+**My reflection**
+
+The main thing I learned is that a good overall Dice can hide where the model actually fails. The models perform badly on specific slices, the ones where the prostate is very small. One result surprised me: I expected the 2D CAN to do better than the 2D U-Net, but it was slightly worse. I also learned that a 3D model cannot be compared directly with a 2D one, because that would be unfair; the comparison has to be made on the same scale, per volume. With more time, I would complete a 3D model and test whether it fixes the small-prostate slices.
+
 ## Artificial Intelligence Usage Disclosure
 
 **Tool used:** Claude (Anthropic), through the Claude app, throughout the project.
